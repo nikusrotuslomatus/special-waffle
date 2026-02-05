@@ -1,0 +1,160 @@
+controllers:
+  mppi__bicycle_steer__cov_0.05__samples_2500:
+    type: "mppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.05
+    lmbda: 0.5
+    angle_limit: 30.0
+
+
+  mppi__nf__bicycle_steer__cov_0.05__samples_2500:
+    type: "mppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.05
+    lmbda: 0.5
+    angle_limit: 30.0
+    presampler: "nf"
+    n_presamples: 1000
+
+
+  mppi__unicycle_steer__cov_0.05__samples_2500:
+    type: "mppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+
+
+  mppi__nf__unicycle_steer__cov_0.05__samples_2500:
+    type: "mppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+    presampler: "nf"
+    n_presamples: 1000
+
+
+  mppi__unicycle_steer__final:
+    type: "mppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+
+
+  mppi__nf__unicycle_steer__final:
+    type: "mppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+    presampler: "nf"
+    n_presamples: 1000
+
+  logmppi__unicycle_steer__final:
+    type: "logmppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+
+
+  logmppi__nf__unicycle_steer__final:
+    type: "logmppi"
+    model: "unicycle_steer"
+    dt: 0.2
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0625
+    lmbda: 0.5
+    angular_vel_limit: 45.0
+    presampler: "nf"
+    n_presamples: 1000
+
+
+  mppi__bicycle_steer__final:
+    type: "mppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0289
+    lmbda: 0.5
+    angle_limit: 30.0
+
+
+  logmppi__bicycle_steer__final:
+    type: "logmppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0289
+    lmbda: 0.5
+    angle_limit: 30.0
+
+
+  mppi__nf__bicycle_steer__final:
+    type: "mppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0289
+    lmbda: 0.5
+    angle_limit: 30.0
+    presampler: "nf"
+    n_presamples: 1000
+
+
+  logmppi__nf__bicycle_steer__final:
+    type: "logmppi"
+    model: "bicycle_steer"
+    dt: 0.2
+    wheel_base: 0.324
+    speed: 1.
+    horizon: 16
+    n_samples: 2500
+    variance: 0.0289
+    lmbda: 0.5
+    angle_limit: 30.0
+    presampler: "nf"
+    n_presamples: 1000
