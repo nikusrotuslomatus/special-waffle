@@ -70,6 +70,7 @@ class TDMPC():
 			'best_gauss_return': float('nan'),
 			'final_mean_return': float('nan'),
 			'plan_time_ms': 0.0,
+			'mi_warmstart_used': 0.0,
 		}
 
 	def _init_mi_sampler(self):
@@ -86,6 +87,10 @@ class TDMPC():
 				z_dim=self.cfg.latent_dim,
 				action_dim=self.cfg.action_dim,
 				horizon=self.cfg.horizon,
+				ctx_dim=getattr(self.cfg, 'mi_ctx_dim', 128),
+				hidden_dim=getattr(self.cfg, 'mi_sampler_hidden_dim', 128),
+				num_layers=getattr(self.cfg, 'mi_sampler_layers', 8),
+				zero_init_coupling=bool(getattr(self.cfg, 'mi_sampler_zero_init', False)),
 				device=str(self.device),
 			)
 			mi_path = getattr(self.cfg, 'mi_model_path', '')
@@ -139,12 +144,14 @@ class TDMPC():
 				'best_gauss_return': float('nan'),
 				'final_mean_return': float('nan'),
 				'plan_time_ms': 0.0,
+				'mi_warmstart_used': 0.0,
 			}
 			return torch.empty(self.cfg.action_dim, dtype=torch.float32, device=self.device).uniform_(-1, 1)
 
 		plan_t0 = time.perf_counter()
 		best_nf_value = float('nan')
 		best_gauss_value = float('nan')
+		mi_warmstart_used = 0.0
 
 		# Sample policy trajectories
 		obs = torch.tensor(obs, dtype=torch.float32, device=self.device).unsqueeze(0)
@@ -189,6 +196,7 @@ class TDMPC():
 					delta = getattr(self.cfg, 'mi_delta', 0.0)
 					if best_nf_value > seed_value + delta:
 						mean = torch.clamp(u_nf[best_idx], -1.0, 1.0)
+						mi_warmstart_used = 1.0
 
 		# Iterate CEM
 		for i in range(self.cfg.iterations):
@@ -225,6 +233,7 @@ class TDMPC():
 			'best_gauss_return': float(best_gauss_value),
 			'final_mean_return': float(final_mean_return),
 			'plan_time_ms': 1000.0 * (time.perf_counter() - plan_t0),
+			'mi_warmstart_used': float(mi_warmstart_used),
 		}
 		a = mean
 		if not eval_mode:

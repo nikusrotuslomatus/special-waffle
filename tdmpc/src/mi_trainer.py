@@ -64,6 +64,15 @@ class MITrainer:
 		params = list(self.generator.parameters()) + list(self.discriminator.parameters())
 		self.optim = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
 
+	def _grad_norm(self, module: nn.Module) -> float:
+		total = 0.0
+		for p in module.parameters():
+			if p.grad is None:
+				continue
+			gn = p.grad.detach().norm(2).item()
+			total += gn * gn
+		return total ** 0.5
+
 	def _rollout_latent(self, z0: torch.Tensor, u_seq: torch.Tensor, dyn_model) -> torch.Tensor:
 		"""Rollout latent dynamics with stop-grad. Returns [B,H,latent_dim]."""
 		with torch.no_grad():
@@ -86,15 +95,19 @@ class MITrainer:
 		dyn_model: TOLD model (uses .next)
 		"""
 		obs = replay_batch[0] if isinstance(replay_batch, (tuple, list)) else replay_batch['obs']
+		obs = obs.to(self.device)
 		z0 = encoder(obs).detach()
+		if ctx is not None:
+			ctx = ctx.to(self.device)
 
 		self.generator.train()
 		self.discriminator.train()
 		self.optim.zero_grad(set_to_none=True)
 
 		# Sample actions from generator (no grad needed for sampling itself)
-		u_samples, _ = self.generator.sample(z0, ctx=ctx, num_samples=self.num_samples)
+		u_samples, log_pi = self.generator.sample(z0, ctx=ctx, num_samples=self.num_samples)
 		u_samples = u_samples.reshape(-1, self.horizon, self.action_dim)
+		log_pi = log_pi.reshape(-1)
 		z0_rep = z0.repeat_interleave(self.num_samples, dim=0)
 		ctx_rep = None if ctx is None else ctx.repeat_interleave(self.num_samples, dim=0)
 
@@ -104,7 +117,9 @@ class MITrainer:
 
 		u_flat = u_samples.reshape(u_samples.shape[0], -1)
 		log_q = self.discriminator.log_prob(x, u_flat)
-		log_pi = self.generator.log_prob(u_samples, z0_rep, ctx=ctx_rep)
+		if ctx_rep is not None:
+			# Ensure repeated context was materialized and shape-consistent.
+			assert ctx_rep.shape[0] == u_samples.shape[0]
 
 		loss_info = -log_q.mean()
 		loss_ent = log_pi.mean()
@@ -122,6 +137,8 @@ class MITrainer:
 			loss = loss + self.energy_coef * energy_loss
 
 		loss.backward()
+		gen_grad_norm = self._grad_norm(self.generator)
+		disc_grad_norm = self._grad_norm(self.discriminator)
 		if self.max_grad_norm is not None:
 			torch.nn.utils.clip_grad_norm_(self.generator.parameters(), self.max_grad_norm, error_if_nonfinite=False)
 			torch.nn.utils.clip_grad_norm_(self.discriminator.parameters(), self.max_grad_norm, error_if_nonfinite=False)
@@ -131,6 +148,10 @@ class MITrainer:
 			'mi_loss': float(loss.item()),
 			'mi_info_loss': float(loss_info.item()),
 			'mi_ent_loss': float(loss_ent.item()),
+			'mi_log_q': float(log_q.mean().item()),
+			'mi_log_pi': float(log_pi.mean().item()),
+			'mi_gen_grad_norm': float(gen_grad_norm),
+			'mi_disc_grad_norm': float(disc_grad_norm),
 		}
 		if smooth_loss is not None:
 			metrics['mi_smooth_loss'] = float(smooth_loss.item())

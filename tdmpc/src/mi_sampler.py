@@ -14,7 +14,7 @@ try:
     )
     _NF_IMPORT_ERROR = None
 except Exception as _err:
-    root = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[2]
     if str(root) not in sys.path:
         sys.path.append(str(root))
     try:
@@ -98,6 +98,7 @@ class ConditionalFlowSampler(nn.Module):
         extra_ctx_dim: int = 0,
         hidden_dim: int = 128,
         num_layers: int = 8,
+        zero_init_coupling: bool = False,
         bound_actions: bool = True,
         action_low: float = -1.0,
         action_high: float = 1.0,
@@ -113,18 +114,24 @@ class ConditionalFlowSampler(nn.Module):
         self.action_dim = action_dim
         self.horizon = horizon
         self.total_dim = action_dim * horizon
+        if self.total_dim % 2 != 0:
+            raise ValueError(
+                f"action_dim*horizon must be even for coupling split, got {self.total_dim} "
+                f"(action_dim={action_dim}, horizon={horizon})."
+            )
         self.device = torch.device(device)
 
         self.context_net = ContextNet(z_dim, extra_ctx_dim, ctx_dim, hidden_dim)
 
         flows = []
+        init_method = "zeros" if zero_init_coupling else None
         for _ in range(num_layers):
             param_map = SimpleConditionalMLP(
                 input_dim=self.total_dim // 2,
                 context_dim=ctx_dim,
                 hidden_dims=[hidden_dim, hidden_dim, self.total_dim],
                 activation="relu",
-                init_method="zeros",
+                init_method=init_method,
             )
             flows.append(AffineCouplingBlockConditional(param_map))
             flows.append(nf.flows.Permute(self.total_dim, mode="shuffle"))
@@ -138,15 +145,17 @@ class ConditionalFlowSampler(nn.Module):
         self.flow = ConditionalNormalizingFlow(base, flows)
         self.to(self.device)
 
-    @torch.no_grad()
     def sample(
         self,
         z0: torch.Tensor,
         ctx: Optional[torch.Tensor] = None,
         num_samples: int = 1,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        z0 = z0.to(self.device)
         if z0.dim() == 1:
             z0 = z0.unsqueeze(0)
+        if ctx is not None:
+            ctx = ctx.to(self.device)
         batch = z0.shape[0]
         context = self.context_net(z0, ctx)
         context = context.repeat_interleave(num_samples, dim=0)
@@ -155,16 +164,29 @@ class ConditionalFlowSampler(nn.Module):
         logp = logp.view(batch, num_samples)
         return samples, logp
 
+    @torch.no_grad()
+    def sample_no_grad(
+        self,
+        z0: torch.Tensor,
+        ctx: Optional[torch.Tensor] = None,
+        num_samples: int = 1,
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        return self.sample(z0=z0, ctx=ctx, num_samples=num_samples)
+
     def log_prob(
         self,
         u: torch.Tensor,
         z0: torch.Tensor,
         ctx: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        z0 = z0.to(self.device)
+        u = u.to(self.device)
         if z0.dim() == 1:
             z0 = z0.unsqueeze(0)
         if u.dim() == 3:
             u = u.unsqueeze(1)
+        if ctx is not None:
+            ctx = ctx.to(self.device)
         batch, num_samples, horizon, act_dim = u.shape
         assert horizon == self.horizon
         assert act_dim == self.action_dim

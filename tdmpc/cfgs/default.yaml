@@ -38,6 +38,51 @@ seed_steps: 5000
 update_freq: 2
 tau: 0.01
 
+# MI sampler training (for train_mi.py)
+mi_tdmpc_model_path: ""
+mi_sampler_out_dir: ""
+mi_collect_eval_mode: false
+mi_collect_use_warmstart: false
+mi_collect_mi_model_path: ""
+mi_train_episodes: 200
+mi_warmup_episodes: 20
+mi_updates_per_episode: 25
+mi_joint_tdmpc_updates: 0
+mi_log_every: 10
+mi_ctx_dim: 128
+mi_sampler_hidden_dim: 128
+mi_sampler_layers: 8
+mi_sampler_zero_init: false
+mi_discriminator_hidden_dim: 256
+mi_train_num_samples: 1
+mi_alpha: 7.0
+mi_smooth_coef: 0.0
+mi_energy_coef: 0.0
+mi_train_lr: 5e-5
+mi_train_wd: 0.0
+mi_train_grad_clip: 10.0
+mi_report_every: 10
+mi_report_batch_size: 128
+mi_report_samples_per_state: 8
+mi_report_entropy_eps: 1e-6
+mi_report_baseline: gaussian_clip
+mi_report_gaussian_std: 2.0
+mi_ckpt_metric: coverage_pairwise_spread_gain
+mi_ckpt_mode: max
+mi_save_best_ckpt: true
+mi_save_periodic_ckpt: true
+mi_periodic_ckpt_every: 20
+
+# A/B evaluation of multiple MI samplers (for eval_mi_ab.py)
+ab_tdmpc_model_path: ""
+ab_sampler_paths: ""
+ab_sampler_dir: ""
+ab_sampler_glob: "sampler*.pt"
+ab_eval_episodes: 10
+ab_eval_step: 5000
+ab_eval_seeds: "1"
+ab_out_csv: ""
+
 # architecture
 enc_dim: 256
 mlp_dim: 512
